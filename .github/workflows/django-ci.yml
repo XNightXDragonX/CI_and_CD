@@ -7,6 +7,11 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    
+    # Явно включаем поддержку Docker
+    container:
+      image: ubuntu:22.04
+      options: --network=host
 
     services:
       postgres:
@@ -23,78 +28,41 @@ jobs:
           --health-interval 2s
           --health-timeout 1s
           --health-retries 30
-        volumes:
-          - pgdata:/var/lib/postgresql/data
+          --network=host
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
+    - name: Setup Python and PostgreSQL client
+      run: |
+        apt-get update && apt-get install -y python3 python3-pip postgresql-client
+        python3 -m pip install --upgrade pip
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
         pip install -r requirements.txt psycopg2-binary pytest-django
 
-    - name: Wait for PostgreSQL (with advanced checks)
-      id: postgres-wait
-      continue-on-error: true
+    - name: Verify PostgreSQL connection
       run: |
-        echo "Starting PostgreSQL health checks..."
-        MAX_RETRIES=30
-        RETRY_DELAY=2
-        
-        for ((i=1; i<=$MAX_RETRIES; i++))
-        do
-          echo "Attempt $i/$MAX_RETRIES"
-          
-          # Проверка доступности порта
-          if nc -z postgres 5432; then
-            echo "Port 5432 is open"
-            
-            # Проверка через pg_isready
-            if pg_isready -h postgres -U postgres -d netology_django_testing -t 1; then
-              echo "PostgreSQL is ready to accept connections"
-              echo "PGSQL_READY=true" >> $GITHUB_OUTPUT
-              exit 0
-            else
-              echo "PostgreSQL is not yet ready"
-            fi
-          else
-            echo "Port 5432 is not open yet"
+        echo "Waiting for PostgreSQL..."
+        for i in {1..30}; do
+          if PGPASSWORD=123 psql -h localhost -U postgres -d netology_django_testing -c "SELECT 1" >/dev/null 2>&1; then
+            echo "PostgreSQL is ready!"
+            exit 0
           fi
-          
-          sleep $RETRY_DELAY
+          sleep 2
+          echo "Attempt $i/30 - PostgreSQL not ready yet"
         done
-        
-        echo "PostgreSQL health check failed after $MAX_RETRIES attempts"
-        echo "PGSQL_READY=false" >> $GITHUB_OUTPUT
-        exit 1
-
-    - name: Show PostgreSQL logs if timeout
-      if: steps.postgres-wait.outputs.PGSQL_READY != 'true'
-      run: |
-        echo "=== PostgreSQL Container Logs ==="
-        docker logs $(docker ps -aqf "name=postgres") || echo "Failed to get container logs"
-        echo "=== Network Diagnostics ==="
-        ping -c 3 postgres || echo "Ping failed"
-        nc -zv postgres 5432 || echo "Port check failed"
-        echo "=== Current Processes ==="
-        ps aux || echo "Failed to check processes"
+        echo "PostgreSQL connection failed after 30 attempts"
         exit 1
 
     - name: Run migrations
-      if: steps.postgres-wait.outputs.PGSQL_READY == 'true'
       env:
         DJANGO_SETTINGS_MODULE: django_testing.settings
       run: |
         python manage.py migrate
 
     - name: Run tests
-      if: steps.postgres-wait.outputs.PGSQL_READY == 'true'
       env:
         DJANGO_SETTINGS_MODULE: django_testing.settings
       run: |

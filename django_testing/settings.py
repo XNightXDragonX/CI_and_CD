@@ -79,16 +79,15 @@ WSGI_APPLICATION = 'django_testing.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
-import os
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB', 'netology_django_testing'),
-        'USER': os.getenv('POSTGRES_USER', 'postgres'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD', '123'),
-        'HOST': os.getenv('POSTGRES_HOST', 'localhost'),  # Будет 'postgres' в CI
-        'PORT': os.getenv('POSTGRES_PORT', '5432'),
+        'NAME': 'netology_django_testing',
+        'USER': 'postgres',
+        'PASSWORD': '123',
+        'HOST': 'localhost',  # Важно для network=host
+        'PORT': '5432',
     }
 }
 
