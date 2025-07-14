@@ -25,7 +25,7 @@ SECRET_KEY = 'oaamn^2=a4%p57jkt%&6rcird)lb6-#fo)^6rram7d+_@=8e38'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['79.174.93.105']
 
 
 # Application definition
@@ -82,8 +82,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'netology_django_testing',
         'USER': 'postgres',
-        'PASSWORD': 'Fedia_38_2025',
-        'HOST': '127.0.0.1',
+        'PASSWORD': '123',
+        'HOST': 'localhost',
         'PORT': '5432',
     }
 }
