@@ -7,11 +7,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
-    # Явно включаем поддержку Docker
-    container:
-      image: ubuntu:22.04
-      options: --network=host
 
     services:
       postgres:
@@ -20,7 +15,6 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: 123
           POSTGRES_DB: netology_django_testing
-          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -28,33 +22,37 @@ jobs:
           --health-interval 2s
           --health-timeout 1s
           --health-retries 30
-          --network=host
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup Python and PostgreSQL client
-      run: |
-        apt-get update && apt-get install -y python3 python3-pip postgresql-client
-        python3 -m pip install --upgrade pip
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
 
     - name: Install dependencies
       run: |
+        python -m pip install --upgrade pip
         pip install -r requirements.txt psycopg2-binary pytest-django
 
-    - name: Verify PostgreSQL connection
+    - name: Wait for PostgreSQL
       run: |
-        echo "Waiting for PostgreSQL..."
+        echo "Waiting for PostgreSQL to become ready..."
         for i in {1..30}; do
-          if PGPASSWORD=123 psql -h localhost -U postgres -d netology_django_testing -c "SELECT 1" >/dev/null 2>&1; then
+          if nc -z localhost 5432; then
             echo "PostgreSQL is ready!"
             exit 0
           fi
           sleep 2
           echo "Attempt $i/30 - PostgreSQL not ready yet"
         done
-        echo "PostgreSQL connection failed after 30 attempts"
+        echo "PostgreSQL connection failed"
         exit 1
+
+    - name: Verify PostgreSQL connection
+      run: |
+        PGPASSWORD=123 psql -h localhost -U postgres -d netology_django_testing -c "SELECT 1" || (echo "Failed to connect to PostgreSQL"; exit 1)
 
     - name: Run migrations
       env:
