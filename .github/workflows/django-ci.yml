@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Django CI/CD Pipeline
 
 on:
   push:
@@ -21,7 +21,12 @@ jobs:
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 5
+          --health-retries 10
+        # Добавляем параметры для ускорения запуска
+        volumes:
+          - postgres_data:/var/lib/postgresql/data
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
 
     steps:
     - uses: actions/checkout@v4
@@ -29,7 +34,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.13'
+        python-version: '3.10'
 
     - name: Install dependencies
       run: |
@@ -37,11 +42,12 @@ jobs:
         pip install -r requirements.txt
         pip install pytest pytest-django psycopg2-binary
 
-    - name: Wait for PostgreSQL
+    - name: Wait for PostgreSQL (увеличенное время ожидания)
       run: |
-        timeout 20s bash -c 'until pg_isready -h postgres -p 5432; do sleep 1; done'
+        timeout 60s bash -c 'until pg_isready -h postgres -p 5432; do sleep 2; echo "Waiting for PostgreSQL..."; done'
+        echo "PostgreSQL is ready!"
 
-    - name:  Run migrations
+    - name: Run migrations
       env:
         DATABASE_URL: postgres://postgres:123@postgres:5432/netology_django_testing
         DJANGO_SETTINGS_MODULE: django_testing.settings
