@@ -10,7 +10,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:13-alpine
+        image: postgres:15-alpine  # Используем PostgreSQL 15
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: 123
@@ -54,6 +54,12 @@ jobs:
       run: |
         PGPASSWORD=123 psql -h localhost -U postgres -d netology_django_testing -c "SELECT 1" || (echo "Failed to connect to PostgreSQL"; exit 1)
 
+    - name: Check Django configuration
+      env:
+        DJANGO_SETTINGS_MODULE: django_testing.settings
+      run: |
+        python manage.py check
+
     - name: Run migrations
       env:
         DJANGO_SETTINGS_MODULE: django_testing.settings
@@ -65,3 +71,11 @@ jobs:
         DJANGO_SETTINGS_MODULE: django_testing.settings
       run: |
         pytest
+
+    # Опционально: сборка статических файлов
+    - name: Collect static files
+      if: success()
+      env:
+        DJANGO_SETTINGS_MODULE: django_testing.settings
+      run: |
+        python manage.py collectstatic --noinput
