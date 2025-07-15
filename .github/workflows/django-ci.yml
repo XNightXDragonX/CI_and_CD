@@ -34,7 +34,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt psycopg2-binary pytest-django
+        pip install -r requirements.txt psycopg2-binary pytest-django django-filter
 
     - name: Wait for PostgreSQL
       run: |
@@ -56,11 +56,35 @@ jobs:
       run: |
         python manage.py migrate
 
-    - name: Run tests with debug info
+    - name: Debug URLs and settings
       env:
         DJANGO_SETTINGS_MODULE: django_testing.settings
       run: |
-        echo "=== Checking URLs ==="
-        python manage.py show_urls
-        echo "=== Running tests ==="
-        pytest -v
+        echo "=== Installed apps ==="
+        python manage.py shell -c "from django.conf import settings; print(settings.INSTALLED_APPS)"
+        echo "=== URL patterns ==="
+        python manage.py shell -c "
+        from django.urls import get_resolver
+        resolver = get_resolver()
+        for url_pattern in resolver.url_patterns:
+            print(url_pattern.pattern)
+        "
+        echo "=== REST Framework routers ==="
+        python manage.py shell -c "
+        try:
+            from django.urls import get_resolver
+            from rest_framework.routers import DefaultRouter
+            resolver = get_resolver()
+            for pattern in resolver.url_patterns:
+                if isinstance(pattern, DefaultRouter):
+                    for url in pattern.urls:
+                        print(url.pattern)
+        except Exception as e:
+            print(f'Error checking routers: {e}')
+        "
+
+    - name: Run tests
+      env:
+        DJANGO_SETTINGS_MODULE: django_testing.settings
+      run: |
+        pytest -v tests/students/test_courses_api.py

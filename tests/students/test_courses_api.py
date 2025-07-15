@@ -32,7 +32,7 @@ def test_retrieve_course(client, course_factory):
        
     #Arrange
     course = course_factory()
-    url = reverse('course-detail', args=[course.id])
+    url = reverse('courses-detail', args=[course.id])
     #Act
     response =client.get(url)
     
