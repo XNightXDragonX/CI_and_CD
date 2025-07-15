@@ -83,7 +83,7 @@ def test_filter_course_by_name(client, course_factory):
     #Arrange
     courses = course_factory(_quantity=3)
     target_course = courses[1]
-    url = reverse('courses-list') + f'?id={target_course.name}'
+    url = reverse('courses-list') + f'?name={target_course.name}'
     
     #Act
     response = client.get(url)

@@ -129,3 +129,10 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 MAX_STUDENTS_PER_COURSE = 20
+
+REST_FRAMEWORK = {
+	'DEFAULT_FILTER_BACKENDS': [
+		'django_filters.rest_framework.DjangoFilterBackend'
+	],
+	'TEST_REQUEST_DEFAULT_FORMAT': 'json'
+}
